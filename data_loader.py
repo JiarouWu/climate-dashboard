@@ -1,10 +1,21 @@
 import pandas as pd
+import urllib.request
+import io
 
 def load_and_clean_data():
-    weather = pd.read_csv("https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv",
-                          skiprows=1,
-                          na_values="***")
+    url = "https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv"
+    
+    # 模拟真实浏览器请求，防止被 NASA 防爬机制拦截
+    req = urllib.request.Request(
+        url, 
+        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    )
+    with urllib.request.urlopen(req, timeout=15) as response:
+        csv_data = response.read().decode('utf-8')
+    
+    weather = pd.read_csv(io.StringIO(csv_data), skiprows=1, na_values="***")
 
+    # 原有清洗逻辑保持严格不变
     month_columns = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     weather_selected = weather[['Year'] + month_columns].copy()
