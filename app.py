@@ -65,11 +65,11 @@ app.layout = html.Div(className='notion-container', children=[
         dcc.Graph(id='density-chart')
     ]),
 
-    # Section 4: Statistical Conclusion & Image
+    # Section 4: Statistical Conclusion
     html.Div(className='notion-card', children=[
         html.H2("4. Analytical Conclusion & Bootstrap Simulation"),
         
-        # 确保你在 assets 文件夹下放了 bootstrap.png
+        # 确保图片 bootstrap.png 已放在项目目录下的 assets 文件夹中
         html.Img(src='/assets/bootstrap.png', style={'width': '100%', 'maxWidth': '800px', 'marginBottom': '20px', 'borderRadius': '6px'}),
         
         html.Div(className='notion-callout', children=[
@@ -99,16 +99,17 @@ def update_charts(year_range, selected_months):
                             (df_comp['Year'] <= year_range[1]) &
                             (df_comp['month'].isin(selected_months))]
 
-    # 1. Timeseries Plot (Safe version without lowess)
+    # 1. Timeseries Plot (保留趋势线)
     fig_time = px.scatter(
         filtered_tidy, x='date', y='delta', 
+        trendline='lowess', trendline_color_override='red',
         opacity=0.6, color_discrete_sequence=['#2E5C8A'],
         template=CHART_TEMPLATE,
         labels={'date': 'Date', 'delta': 'Temperature Anomaly (°C)'}
     )
     fig_time.update_layout(margin=dict(l=20, r=20, t=30, b=20))
 
-    # 2. Faceted Plot (Safe version without lowess)
+    # 2. Faceted Plot (严格移除导致崩溃的 trendline)
     fig_facet = px.scatter(
         filtered_tidy, x='date', y='delta', facet_col='month', facet_col_wrap=3,
         opacity=0.6, color_discrete_sequence=['#2E5C8A'],
