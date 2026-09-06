@@ -98,7 +98,6 @@ def update_charts(year_range, selected_months):
     # 1. Timeseries Plot
     fig_time = px.scatter(
         filtered_tidy, x='date', y='delta', 
-        trendline='lowess', trendline_color_override='red',
         opacity=0.6, color_discrete_sequence=['#2E5C8A'],
         template=CHART_TEMPLATE,
         labels={'date': 'Date', 'delta': 'Temperature Anomaly (°C)'}
