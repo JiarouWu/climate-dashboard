@@ -1,146 +1,124 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "cb2625fc",
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import dash\n",
-    "from dash import dcc, html, Input, Output\n",
-    "import plotly.express as px\n",
-    "from data_loader import load_and_clean_data\n",
-    "\n",
-    "# Load data using the exact logic from the Jupyter Notebook\n",
-    "df_tidy, df_comp = load_and_clean_data()\n",
-    "\n",
-    "# Initialize the Dash app\n",
-    "app = dash.Dash(__name__)\n",
-    "server = app.server # Required for Render/Gunicorn deployment\n",
-    "app.title = \"Global Climate Anomalies\"\n",
-    "\n",
-    "# Global Notion-style chart template\n",
-    "CHART_TEMPLATE = \"simple_white\"\n",
-    "\n",
-    "# Define Layout\n",
-    "app.layout = html.Div(className='notion-container', children=[\n",
-    "    \n",
-    "    # Header Section\n",
-    "    html.Div(className='notion-header', children=[\n",
-    "        html.H1(\"🌡️ Climate Change: Temperature Anomalies\"),\n",
-    "        html.P(\"Analyzing Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies in the Northern Hemisphere.\", className='notion-text-gray'),\n",
-    "        html.Div(className='notion-callout', children=[\n",
-    "            html.Span(\"💡 Reference Base Period: \"),\n",
-    "            html.Span(\"1951-1980 (NASA Goddard Institute for Space Studies)\")\n",
-    "        ])\n",
-    "    ]),\n",
-    "\n",
-    "    # Interactive Controls\n",
-    "    html.Div(className='notion-card', children=[\n",
-    "        html.H3(\"Filters & Controls\"),\n",
-    "        html.Label(\"Select Year Range:\"),\n",
-    "        dcc.RangeSlider(\n",
-    "            id='year-slider',\n",
-    "            min=df_tidy['Year'].min(),\n",
-    "            max=df_tidy['Year'].max(),\n",
-    "            step=1,\n",
-    "            value=[1880, df_tidy['Year'].max()],\n",
-    "            marks={year: str(year) for year in range(1880, 2030, 20)},\n",
-    "            className='notion-slider'\n",
-    "        ),\n",
-    "        html.Br(),\n",
-    "        html.Label(\"Select Months to Display:\"),\n",
-    "        dcc.Dropdown(\n",
-    "            id='month-dropdown',\n",
-    "            options=[{'label': m, 'value': m} for m in df_tidy['month'].unique()],\n",
-    "            value=list(df_tidy['month'].unique()), # Default all\n",
-    "            multi=True,\n",
-    "            className='notion-dropdown'\n",
-    "        )\n",
-    "    ]),\n",
-    "\n",
-    "    # Section 1: Time Series Trend\n",
-    "    html.Div(className='notion-card', children=[\n",
-    "        html.H2(\"1. Overall Temperature Trend\"),\n",
-    "        html.P(\"Time-series scatter plot showing temperature anomalies with a LOESS smoothing trendline.\"),\n",
-    "        dcc.Graph(id='timeseries-chart')\n",
-    "    ]),\n",
-    "\n",
-    "    # Section 2: Faceted Monthly View\n",
-    "    html.Div(className='notion-card', children=[\n",
-    "        html.H2(\"2. Seasonal & Monthly Heat Profile\"),\n",
-    "        html.P(\"Faceted view to determine if warming is more pronounced in specific months.\"),\n",
-    "        dcc.Graph(id='faceted-chart')\n",
-    "    ]),\n",
-    "\n",
-    "    # Section 3: Epoch Comparison (Box Plot)\n",
-    "    html.Div(className='notion-card', children=[\n",
-    "        html.H2(\"3. Historical Climate Eras\"),\n",
-    "        html.P(\"Comparing anomaly distributions across predefined historical intervals.\"),\n",
-    "        dcc.Graph(id='interval-chart')\n",
-    "    ])\n",
-    "])\n",
-    "\n",
-    "# Callbacks for Interactivity\n",
-    "@app.callback(\n",
-    "    [Output('timeseries-chart', 'figure'),\n",
-    "     Output('faceted-chart', 'figure'),\n",
-    "     Output('interval-chart', 'figure')],\n",
-    "    [Input('year-slider', 'value'),\n",
-    "     Input('month-dropdown', 'value')]\n",
-    ")\n",
-    "def update_charts(year_range, selected_months):\n",
-    "    # Filter dataset based on interactive controls\n",
-    "    filtered_tidy = df_tidy[(df_tidy['Year'] >= year_range[0]) & \n",
-    "                            (df_tidy['Year'] <= year_range[1]) &\n",
-    "                            (df_tidy['month'].isin(selected_months))]\n",
-    "    \n",
-    "    filtered_comp = df_comp[(df_comp['Year'] >= year_range[0]) & \n",
-    "                            (df_comp['Year'] <= year_range[1]) &\n",
-    "                            (df_comp['month'].isin(selected_months))]\n",
-    "\n",
-    "    # 1. Timeseries Plot (Mimicking Notebook task 1)\n",
-    "    fig_time = px.scatter(\n",
-    "        filtered_tidy, x='date', y='delta', \n",
-    "        trendline='lowess', trendline_color_override='red',\n",
-    "        opacity=0.6, color_discrete_sequence=['#2E5C8A'],\n",
-    "        template=CHART_TEMPLATE,\n",
-    "        labels={'date': 'Date', 'delta': 'Temperature Anomaly (°C)'}\n",
-    "    )\n",
-    "    fig_time.update_layout(margin=dict(l=20, r=20, t=30, b=20))\n",
-    "\n",
-    "    # 2. Faceted Plot (Mimicking Notebook task 2)\n",
-    "    fig_facet = px.scatter(\n",
-    "        filtered_tidy, x='date', y='delta', facet_col='month', facet_col_wrap=3,\n",
-    "        opacity=0.6, color_discrete_sequence=['#2E5C8A'],\n",
-    "        template=CHART_TEMPLATE, height=700,\n",
-    "        labels={'date': '', 'delta': 'Anomaly (°C)'}\n",
-    "    )\n",
-    "    # Remove \"month=\" from subplot titles for cleaner UX\n",
-    "    fig_facet.for_each_annotation(lambda a: a.update(text=a.text.split(\"=\")[-1]))\n",
-    "    \n",
-    "    # 3. Interval Box Plot (Enhancing the Epoch task)\n",
-    "    fig_box = px.box(\n",
-    "        filtered_comp, x='interval', y='delta', color='interval',\n",
-    "        template=CHART_TEMPLATE,\n",
-    "        labels={'interval': 'Historical Epoch', 'delta': 'Temperature Anomaly (°C)'},\n",
-    "        color_discrete_sequence=px.colors.qualitative.Pastel\n",
-    "    )\n",
-    "    fig_box.update_layout(showlegend=False)\n",
-    "\n",
-    "    return fig_time, fig_facet, fig_box\n",
-    "\n",
-    "if __name__ == '__main__':\n",
-    "    app.run_server(debug=True)"
-   ]
-  }
- ],
- "metadata": {
-  "language_info": {
-   "name": "python"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+import dash
+from dash import dcc, html, Input, Output
+import plotly.express as px
+from data_loader import load_and_clean_data
+
+# Load data using the exact logic from the Jupyter Notebook
+df_tidy, df_comp = load_and_clean_data()
+
+# Initialize the Dash app
+app = dash.Dash(__name__)
+server = app.server # Required for Render/Gunicorn deployment
+app.title = "Global Climate Anomalies"
+
+# Global Notion-style chart template
+CHART_TEMPLATE = "simple_white"
+
+# Define Layout
+app.layout = html.Div(className='notion-container', children=[
+    
+    # Header Section
+    html.Div(className='notion-header', children=[
+        html.H1("🌡️ Climate Change: Temperature Anomalies"),
+        html.P("Analyzing Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies in the Northern Hemisphere.", className='notion-text-gray'),
+        html.Div(className='notion-callout', children=[
+            html.Span("💡 Reference Base Period: "),
+            html.Span("1951-1980 (NASA Goddard Institute for Space Studies)")
+        ])
+    ]),
+
+    # Interactive Controls
+    html.Div(className='notion-card', children=[
+        html.H3("Filters & Controls"),
+        html.Label("Select Year Range:"),
+        dcc.RangeSlider(
+            id='year-slider',
+            min=int(df_tidy['Year'].min()),
+            max=int(df_tidy['Year'].max()),
+            step=1,
+            value=[1880, int(df_tidy['Year'].max())],
+            marks={year: str(year) for year in range(1880, 2030, 20)},
+            className='notion-slider'
+        ),
+        html.Br(),
+        html.Label("Select Months to Display:"),
+        dcc.Dropdown(
+            id='month-dropdown',
+            options=[{'label': m, 'value': m} for m in df_tidy['month'].unique()],
+            value=list(df_tidy['month'].unique()),
+            multi=True,
+            className='notion-dropdown'
+        )
+    ]),
+
+    # Section 1: Time Series Trend
+    html.Div(className='notion-card', children=[
+        html.H2("1. Overall Temperature Trend"),
+        html.P("Time-series scatter plot showing temperature anomalies with a LOESS smoothing trendline."),
+        dcc.Graph(id='timeseries-chart')
+    ]),
+
+    # Section 2: Faceted Monthly View
+    html.Div(className='notion-card', children=[
+        html.H2("2. Seasonal & Monthly Heat Profile"),
+        html.P("Faceted view to determine if warming is more pronounced in specific months."),
+        dcc.Graph(id='faceted-chart')
+    ]),
+
+    # Section 3: Epoch Comparison (Box Plot)
+    html.Div(className='notion-card', children=[
+        html.H2("3. Historical Climate Eras"),
+        html.P("Comparing anomaly distributions across predefined historical intervals."),
+        dcc.Graph(id='interval-chart')
+    ])
+])
+
+# Callbacks for Interactivity
+@app.callback(
+    [Output('timeseries-chart', 'figure'),
+     Output('faceted-chart', 'figure'),
+     Output('interval-chart', 'figure')],
+    [Input('year-slider', 'value'),
+     Input('month-dropdown', 'value')]
+)
+def update_charts(year_range, selected_months):
+    filtered_tidy = df_tidy[(df_tidy['Year'] >= year_range[0]) & 
+                            (df_tidy['Year'] <= year_range[1]) &
+                            (df_tidy['month'].isin(selected_months))]
+    
+    filtered_comp = df_comp[(df_comp['Year'] >= year_range[0]) & 
+                            (df_comp['Year'] <= year_range[1]) &
+                            (df_comp['month'].isin(selected_months))]
+
+    # 1. Timeseries Plot
+    fig_time = px.scatter(
+        filtered_tidy, x='date', y='delta', 
+        trendline='lowess', trendline_color_override='red',
+        opacity=0.6, color_discrete_sequence=['#2E5C8A'],
+        template=CHART_TEMPLATE,
+        labels={'date': 'Date', 'delta': 'Temperature Anomaly (°C)'}
+    )
+    fig_time.update_layout(margin=dict(l=20, r=20, t=30, b=20))
+
+    # 2. Faceted Plot
+    fig_facet = px.scatter(
+        filtered_tidy, x='date', y='delta', facet_col='month', facet_col_wrap=3,
+        opacity=0.6, color_discrete_sequence=['#2E5C8A'],
+        template=CHART_TEMPLATE, height=700,
+        labels={'date': '', 'delta': 'Anomaly (°C)'}
+    )
+    fig_facet.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    
+    # 3. Interval Box Plot
+    fig_box = px.box(
+        filtered_comp, x='interval', y='delta', color='interval',
+        template=CHART_TEMPLATE,
+        labels={'interval': 'Historical Epoch', 'delta': 'Temperature Anomaly (°C)'},
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    fig_box.update_layout(showlegend=False)
+
+    return fig_time, fig_facet, fig_box
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
