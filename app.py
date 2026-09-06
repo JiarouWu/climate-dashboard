@@ -127,7 +127,7 @@ def update_charts(year_range, selected_months):
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
     # 将 side='positive' 移到这里
-    fig_density.update_traces(side='positive', meanline_visible=True, width=1.5)
+    fig_density.update_traces(side='positive', meanline_visible=True, width=1.5, hoverinfo='skip')
     fig_density.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20))
 
     return fig_time, fig_facet, fig_density
