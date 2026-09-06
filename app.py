@@ -21,8 +21,8 @@ app.layout = html.Div(className='notion-container', children=[
         html.H1("Climate Change: Temperature Anomalies"),
         html.P("Analyzing Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies in the Northern Hemisphere.", className='notion-text-gray'),
         html.Div(className='notion-callout', children=[
-            html.Span("Reference Base Period: "),
-            html.Span("1951-1980 (NASA Goddard Institute for Space Studies)")
+            html.Span("Database: "),
+            html.Span("https://data.giss.nasa.gov/gistemp/tabledata_v4/NH.Ts+dSST.csv")
         ])
     ]),
 
