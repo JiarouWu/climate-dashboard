@@ -3,15 +3,14 @@ from dash import dcc, html, Input, Output
 import plotly.express as px
 from data_loader import load_and_clean_data
 
-# Load data using the exact logic from the Jupyter Notebook
+# Load data
 df_tidy, df_comp = load_and_clean_data()
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
-server = app.server # Required for Render/Gunicorn deployment
+server = app.server
 app.title = "Global Climate Anomalies"
 
-# Global Notion-style chart template
 CHART_TEMPLATE = "simple_white"
 
 # Define Layout
@@ -21,10 +20,6 @@ app.layout = html.Div(className='notion-container', children=[
     html.Div(className='notion-header', children=[
         html.H1("🌡️ Climate Change: Temperature Anomalies"),
         html.P("Analyzing Combined Land-Surface Air and Sea-Surface Water Temperature Anomalies in the Northern Hemisphere.", className='notion-text-gray'),
-        html.Div(className='notion-callout', children=[
-            html.Span("💡 Reference Base Period: "),
-            html.Span("1951-1980 (NASA Goddard Institute for Space Studies)")
-        ])
     ]),
 
     # Interactive Controls
@@ -54,22 +49,32 @@ app.layout = html.Div(className='notion-container', children=[
     # Section 1: Time Series Trend
     html.Div(className='notion-card', children=[
         html.H2("1. Overall Temperature Trend"),
-        html.P("Time-series scatter plot showing temperature anomalies with a LOESS smoothing trendline."),
         dcc.Graph(id='timeseries-chart')
     ]),
 
     # Section 2: Faceted Monthly View
     html.Div(className='notion-card', children=[
         html.H2("2. Seasonal & Monthly Heat Profile"),
-        html.P("Faceted view to determine if warming is more pronounced in specific months."),
         dcc.Graph(id='faceted-chart')
     ]),
 
-    # Section 3: Epoch Comparison (Box Plot)
+    # Section 3: Density Curves (Replaced Box Plot)
     html.Div(className='notion-card', children=[
-        html.H2("3. Historical Climate Eras"),
-        html.P("Comparing anomaly distributions across predefined historical intervals."),
-        dcc.Graph(id='interval-chart')
+        html.H2("3. Distribution of Monthly Temperature Anomalies by Time Period"),
+        html.P("Density curves showing the distribution shift of temperature anomalies across historical intervals."),
+        dcc.Graph(id='density-chart')
+    ]),
+
+    # Section 4: Statistical Conclusion
+    html.Div(className='notion-card', children=[
+        html.H2("4. Analytical Conclusion & Bootstrap Simulation"),
+        html.Div(className='notion-callout', children=[
+            html.Div([
+                html.P("To analyze the trajectory of global climate change, we first visualized historical temperature anomalies using monthly and annual time-series scatter plots, trend lines, and period-based density distributions. Both the annual and monthly anomalies graphs suggest a rising trend after 2011."),
+                html.P("And then we use the bootstrap simulation and formula method for cross checking to further confirm this pattern, which finally shows we are 95% confident that the true average temperature anomaly for 2011-present is between 1.13°C and 1.22°C."),
+                html.P(html.B("Hence our analysis suggests that there is a global warming trend in increasing temperature over the period."))
+            ])
+        ])
     ])
 ])
 
@@ -77,7 +82,7 @@ app.layout = html.Div(className='notion-container', children=[
 @app.callback(
     [Output('timeseries-chart', 'figure'),
      Output('faceted-chart', 'figure'),
-     Output('interval-chart', 'figure')],
+     Output('density-chart', 'figure')],
     [Input('year-slider', 'value'),
      Input('month-dropdown', 'value')]
 )
@@ -109,16 +114,18 @@ def update_charts(year_range, selected_months):
     )
     fig_facet.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
     
-    # 3. Interval Box Plot
-    fig_box = px.box(
-        filtered_comp, x='interval', y='delta', color='interval',
+    # 3. Density Plot (Mimicking Seaborn KDE)
+    fig_density = px.violin(
+        filtered_comp, x='delta', y='interval', color='interval',
+        orientation='h', side='positive',
         template=CHART_TEMPLATE,
         labels={'interval': 'Historical Epoch', 'delta': 'Temperature Anomaly (°C)'},
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
-    fig_box.update_layout(showlegend=False)
+    fig_density.update_traces(meanline_visible=True, width=1.5)
+    fig_density.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20))
 
-    return fig_time, fig_facet, fig_box
+    return fig_time, fig_facet, fig_density
 
 if __name__ == '__main__':
     app.run_server(debug=True)
