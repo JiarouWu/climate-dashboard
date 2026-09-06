@@ -109,6 +109,7 @@ def update_charts(year_range, selected_months):
         filtered_tidy, x='date', y='delta', facet_col='month', facet_col_wrap=3,
         opacity=0.6, color_discrete_sequence=['#2E5C8A'],
         template=CHART_TEMPLATE, height=700,
+        trendline='lowess', trendline_color_override='red',
         labels={'date': '', 'delta': 'Anomaly (°C)'}
     )
     fig_facet.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
