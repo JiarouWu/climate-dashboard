@@ -121,12 +121,13 @@ def update_charts(year_range, selected_months):
     # 3. Density Plot
     fig_density = px.violin(
         filtered_comp, x='delta', y='interval', color='interval',
-        orientation='h', side='positive',
+        orientation='h', # 这里删除了 side='positive'
         template=CHART_TEMPLATE,
         labels={'interval': 'Historical Epoch', 'delta': 'Temperature Anomaly (°C)'},
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
-    fig_density.update_traces(meanline_visible=True, width=1.5)
+    # 将 side='positive' 移到这里
+    fig_density.update_traces(side='positive', meanline_visible=True, width=1.5)
     fig_density.update_layout(showlegend=False, margin=dict(l=20, r=20, t=30, b=20))
 
     return fig_time, fig_facet, fig_density
